@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"sync"
 
-	log "github.com/SpirentOrion/logrus"
-	"github.com/SpirentOrion/luddite"
+	"github.com/SpirentOrion/luddite.v2"
+	log "github.com/sirupsen/logrus"
 )
 
 type User struct {

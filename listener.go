@@ -12,11 +12,10 @@ import (
 // Based on http://www.hydrogen18.com/blog/stop-listening-http-server-go.html,
 // but stops on SIGINT instead of explicit Stop() call
 
-type ListenerStoppedError struct {
-}
+type ListenerStoppedError struct{}
 
 func (e *ListenerStoppedError) Error() string {
-	return "Listener stopped"
+	return "listener stopped"
 }
 
 type StoppableTCPListener struct {
@@ -26,29 +25,27 @@ type StoppableTCPListener struct {
 }
 
 func (sl *StoppableTCPListener) Accept() (net.Conn, error) {
-
 	for {
-		//Wait up to one second for a new connection
-		sl.TCPListener.SetDeadline(time.Now().Add(time.Second))
+		// Wait up to one second for a new connection
+		err := sl.TCPListener.SetDeadline(time.Now().Add(time.Second))
+		if err != nil {
+			return nil, err
+		}
 		newConn, err := sl.TCPListener.AcceptTCP()
 
-		//Check for the channel being closed
+		// Check for the channel being closed
 		select {
 		case <-sl.stop:
 			return nil, &ListenerStoppedError{}
 		default:
-			//If nothing came in on the channel, continue as normal
+			// If nothing came in on the channel, continue as normal
 		}
 
 		if err != nil {
-			netErr, ok := err.(net.Error)
-
-			//If this is a timeout, then continue to wait for
-			//new connections
-			if ok && netErr.Timeout() && netErr.Temporary() {
+			// If this is a timeout, then continue to wait for new connections
+			if e, ok := err.(net.Error); ok && e.Timeout() && e.Temporary() {
 				continue
 			}
-
 			return nil, err
 		}
 
@@ -56,7 +53,6 @@ func (sl *StoppableTCPListener) Accept() (net.Conn, error) {
 			newConn.SetKeepAlive(true)
 			newConn.SetKeepAlivePeriod(3 * time.Minute)
 		}
-
 		return newConn, err
 	}
 }
@@ -66,22 +62,24 @@ func NewStoppableTCPListener(addr string, keepalives bool) (net.Listener, error)
 	if err != nil {
 		return nil, err
 	}
+
 	sl := &StoppableTCPListener{
-		l.(*net.TCPListener),
-		make(chan os.Signal, 1),
-		keepalives,
+		TCPListener: l.(*net.TCPListener),
+		stop:        make(chan os.Signal, 1),
+		keepalives:  keepalives,
 	}
 	signal.Notify(sl.stop, syscall.SIGINT)
 	return sl, nil
 }
 
 func NewStoppableTLSListener(addr string, keepalives bool, certFile string, keyFile string) (net.Listener, error) {
+	tlsConfig := &tls.Config{
+		NextProtos:   []string{"http/1.1"},
+		Certificates: make([]tls.Certificate, 1),
+	}
+
 	var err error
-	tlsConfig := &tls.Config{}
-	tlsConfig.NextProtos = []string{"http/1.1"}
-	tlsConfig.Certificates = make([]tls.Certificate, 1)
-	tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
+	if tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile); err != nil {
 		return nil, err
 	}
 
@@ -89,6 +87,5 @@ func NewStoppableTLSListener(addr string, keepalives bool, certFile string, keyF
 	if err != nil {
 		return nil, err
 	}
-	tlsListener := tls.NewListener(stl, tlsConfig)
-	return tlsListener, nil
+	return tls.NewListener(stl, tlsConfig), nil
 }

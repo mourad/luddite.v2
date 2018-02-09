@@ -1,10 +1,12 @@
+// +build windows
+
 package luddite
 
 import (
-	log "github.com/SpirentOrion/logrus"
+	"fmt"
+	"os"
 )
 
-func dumpGoroutineStacks(logger *log.Logger) {
-	logger.Debug("*** goroutine dump not implemened on windows yet***")
+func dumpGoroutineStacks() {
+	fmt.Fprintln(os.Stderr, "*** goroutine dump is not available on Windows ***")
 }
-

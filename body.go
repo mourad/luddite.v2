@@ -33,18 +33,19 @@ var formDecoder = schema.NewDecoder()
 
 func init() {
 	t := time.Time{}
-	formDecoder.RegisterConverter(t, ConvertTime)
+	formDecoder.RegisterConverter(t, convertTime)
 }
 
-func ConvertTime(value string) reflect.Value {
+func convertTime(value string) reflect.Value {
 	if t, err := time.Parse(time.RFC3339, value); err == nil {
 		return reflect.ValueOf(t)
 	}
 	return reflect.Value{}
 }
 
+// ReadRequest deserializes a request body according to the Content-Type header.
 func ReadRequest(req *http.Request, v interface{}) error {
-	SetContextRequestProgress(req.Context(), "luddite", "ReadRequest", "begin")
+	SetContextRequestProgress(req.Context(), "luddite.ReadRequest.begin")
 
 	ct := req.Header.Get(HeaderContentType)
 	switch mt, _, _ := mime.ParseMediaType(ct); mt {
@@ -85,6 +86,7 @@ func ReadRequest(req *http.Request, v interface{}) error {
 	}
 }
 
+// WriteResponse serializes a response body according to the negotiated Content-Type.
 func WriteResponse(rw http.ResponseWriter, status int, v interface{}) (err error) {
 	var b []byte
 	if v != nil {
@@ -100,7 +102,7 @@ func WriteResponse(rw http.ResponseWriter, status int, v interface{}) (err error
 				rw.WriteHeader(http.StatusInternalServerError)
 				b, err = json.Marshal(NewError(nil, EcodeSerializationFailed, err))
 				if err != nil {
-					rw.Write(b)
+					_, _ = rw.Write(b)
 				}
 				return
 			}
@@ -110,7 +112,7 @@ func WriteResponse(rw http.ResponseWriter, status int, v interface{}) (err error
 				rw.WriteHeader(http.StatusInternalServerError)
 				b, err = xml.Marshal(NewError(nil, EcodeSerializationFailed, err))
 				if err != nil {
-					rw.Write(b)
+					_, _ = rw.Write(b)
 				}
 				return
 			}
@@ -126,7 +128,7 @@ func WriteResponse(rw http.ResponseWriter, status int, v interface{}) (err error
 					rw.WriteHeader(http.StatusInternalServerError)
 					b, err = json.Marshal(NewError(nil, EcodeSerializationFailed, err))
 					if err != nil {
-						rw.Write(b)
+						_, _ = rw.Write(b)
 					}
 					return
 				}

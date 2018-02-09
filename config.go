@@ -1,16 +1,37 @@
 package luddite
 
 import (
+	"errors"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
 )
 
-// ServiceConfig is a struct that holds config values relevant to the service framework.
+const (
+	defaultMetricsURIPath  = "/metrics"
+	defaultProfilerURIPath = "/debug/pprof"
+	maxStackSize           = 8 * 1024
+)
+
+var (
+	// ErrInvalidMinApiVersion occurs when a service's minimum API version is <= 0.
+	ErrInvalidMinApiVersion = errors.New("service's minimum API version must be greater than zero")
+
+	// ErrInvalidMaxApiVersion occurs when a service's maximum API version is <= 0.
+	ErrInvalidMaxApiVersion = errors.New("service's maximum API version must be greater than zero")
+
+	// ErrMismatchedApiVersions occurs when a service's minimum API version > its maximum API version.
+	ErrMismatchedApiVersions = errors.New("service's maximum API version must be greater than or equal to the minimum API version")
+
+	defaultCORSAllowedMethods = []string{"GET", "POST", "PUT", "DELETE"}
+)
+
+// ServiceConfig holds a service's config values.
 type ServiceConfig struct {
 	// Addr is the address:port pair that the HTTP server listens on.
 	Addr string
-	Cors struct {
+
+	CORS struct {
 		// Enabled, when true, enables CORS.
 		Enabled bool
 		// AllowedOrigins contains the list of origins a cross-domain request can be executed from. Defaults to "*" on an empty list.
@@ -24,14 +45,17 @@ type ServiceConfig struct {
 		// AllowCredentials indicates whether the request can include user credentials like cookies or HTTP auth.
 		AllowCredentials bool `yaml:"allow_credentials"`
 	}
+
 	// Credentials is a generic map of strings that may be used to store tokens, AWS keys, etc.
 	Credentials map[string]string
-	Debug       struct {
+
+	Debug struct {
 		// Stacks, when true, causes stack traces to appear in 500 error responses.
 		Stacks bool
 		// StackSize sets an upper limit on the length of stack traces that appear in 500 error responses.
 		StackSize int `yaml:"stack_size"`
 	}
+
 	Log struct {
 		// ServiceLogPath sets the file path for the service log (written as JSON). If unset, defaults to stdout (written as text).
 		ServiceLogPath string `yaml:"service_log_path"`
@@ -40,23 +64,26 @@ type ServiceConfig struct {
 		// AccessLogPath sets the file path for the access log (written as JSON). If unset, defaults to stdout (written as text).
 		AccessLogPath string `yaml:"access_log_path"`
 	}
+
 	Metrics struct {
 		// Enabled, when true, enables the service's prometheus client.
 		Enabled bool
 		// UriPath sets the metrics path. Defaults to "/metrics".
-		UriPath string `yaml:"uri_path"`
+		URIPath string `yaml:"uri_path"`
 	}
+
 	Profiler struct {
 		// Enabled, when true, enables the service's profiling endpoints.
 		Enabled bool
 		// UriPath sets the profiler path. Defaults to "/debug/pprof".
-		UriPath string `yaml:"uri_path"`
+		URIPath string `yaml:"uri_path"`
 	}
+
 	Schema struct {
 		// Enabled, when true, self-serve the service's own schema.
 		Enabled bool
-		// UriPath sets the URI path for the schema.
-		UriPath string `yaml:"uri_path"`
+		// URIPath sets the URI path for the schema.
+		URIPath string `yaml:"uri_path"`
 		// FilePath sets the base file path for the schema.
 		FilePath string `yaml:"file_path"`
 		// FileName sets the schema file name.
@@ -64,6 +91,7 @@ type ServiceConfig struct {
 		// RootRedirect, when true, redirects the service's root to the default schema.
 		RootRedirect bool `yaml:"root_redirect"`
 	}
+
 	Trace struct {
 		// Enabled, when true, enables trace recording.
 		Enabled bool
@@ -74,6 +102,7 @@ type ServiceConfig struct {
 		// Params is a map of trace recorder parameters.
 		Params map[string]string
 	}
+
 	Transport struct {
 		// Tls, when true, causes the service to listen using HTTPS.
 		TLS bool `yaml:"tls"`
@@ -82,12 +111,47 @@ type ServiceConfig struct {
 		// KeyFilePath sets the path to the server's key file.
 		KeyFilePath string `yaml:"key_file_path"`
 	}
+
 	Version struct {
 		// Min sets the minimum API version that the service supports.
 		Min int
 		// Max sets the maximum API version that the service supports.
 		Max int
 	}
+}
+
+// Normalize applies sensible defaults to service config values when they are
+// otherwise unspecified or invalid.
+func (config *ServiceConfig) Normalize() {
+	if config.CORS.Enabled && len(config.CORS.AllowedMethods) == 0 {
+		config.CORS.AllowedMethods = defaultCORSAllowedMethods
+	}
+
+	if config.Debug.Stacks && config.Debug.StackSize < 1 {
+		config.Debug.StackSize = maxStackSize
+	}
+
+	if config.Metrics.Enabled && config.Metrics.URIPath == "" {
+		config.Metrics.URIPath = defaultMetricsURIPath
+	}
+
+	if config.Profiler.Enabled && config.Profiler.URIPath == "" {
+		config.Profiler.URIPath = defaultProfilerURIPath
+	}
+}
+
+// Validate sanity-checks service config values.
+func (config *ServiceConfig) Validate() error {
+	if config.Version.Min < 1 {
+		return ErrInvalidMinApiVersion
+	}
+	if config.Version.Max < 1 {
+		return ErrInvalidMaxApiVersion
+	}
+	if config.Version.Min > config.Version.Max {
+		return ErrMismatchedApiVersions
+	}
+	return nil
 }
 
 // ReadConfig reads a YAML config file from path. The file is parsed into the struct pointed to by cfg.
