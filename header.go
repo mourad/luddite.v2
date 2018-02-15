@@ -31,27 +31,11 @@ const (
 	HeaderUserAgent            = "User-Agent"
 )
 
-func RequestId(r *http.Request) string {
-	return r.Header.Get(HeaderRequestId)
-}
-
-func RequestBearerToken(r *http.Request) (token string) {
-	if authStr := r.Header.Get(HeaderAuthorization); len(authStr) >= 7 && authStr[:7] == "Bearer " {
-		token = authStr[7:]
-	} else {
-		token = r.URL.Query().Get("access_token")
+func RequestBearerToken(r *http.Request) string {
+	if s := r.Header.Get(HeaderAuthorization); len(s) >= 7 && s[:7] == "bearer " {
+		return s[7:]
 	}
-	return
-}
-
-func RequestApiVersion(r *http.Request, defaultVersion int) (version int) {
-	version = defaultVersion
-	if versionStr := r.Header.Get(HeaderSpirentApiVersion); versionStr != "" {
-		if i, err := strconv.Atoi(versionStr); err == nil && i > 0 {
-			version = i
-		}
-	}
-	return
+	return r.URL.Query().Get("access_token")
 }
 
 func RequestExternalHost(r *http.Request) string {
@@ -59,10 +43,6 @@ func RequestExternalHost(r *http.Request) string {
 		return host
 	}
 	return r.Host
-}
-
-func RequestQueryCursor(r *http.Request) string {
-	return r.URL.Query().Get("cursor")
 }
 
 func RequestNextLink(r *http.Request, cursor string) *url.URL {
@@ -73,15 +53,16 @@ func RequestNextLink(r *http.Request, cursor string) *url.URL {
 	return &next
 }
 
-func RequestPageSize(r *http.Request) int {
-	var (
-		pageSize int
-		err      error
-	)
+func RequestPageSize(r *http.Request) (pageSize int) {
+	var err error
 	if pageSize, err = strconv.Atoi(r.Header.Get(HeaderSpirentPageSize)); err != nil {
-		return math.MaxInt32
+		pageSize = math.MaxInt32
 	}
-	return pageSize
+	return
+}
+
+func RequestQueryCursor(r *http.Request) string {
+	return r.URL.Query().Get("cursor")
 }
 
 func RequestResourceNonce(r *http.Request) string {

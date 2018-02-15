@@ -7,19 +7,23 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/dimfeld/httptreemux"
 )
 
-type SchemaHandler struct {
+type schemaHandler struct {
 	fileServer http.Handler
 }
 
-func NewSchemaHandler(filePath string) *SchemaHandler {
-	return &SchemaHandler{http.FileServer(http.Dir(filePath))}
+func newSchemaHandler(filePath string) http.Handler {
+	return &schemaHandler{
+		fileServer: http.FileServer(http.Dir(filePath)),
+	}
 }
 
-func (h *SchemaHandler) ServeHTTP(rw http.ResponseWriter, req0 *http.Request, params httprouter.Params) {
-	versionStr := params.ByName("version")
+func (h *schemaHandler) ServeHTTP(rw http.ResponseWriter, req0 *http.Request) {
+	// Transform the request path to a path compatible with the schema directory
+	params := httptreemux.ContextParams(req0.Context())
+	versionStr := params["version"]
 
 	version, err := strconv.Atoi(versionStr)
 	if err != nil || version < 1 {
@@ -27,7 +31,7 @@ func (h *SchemaHandler) ServeHTTP(rw http.ResponseWriter, req0 *http.Request, pa
 		return
 	}
 
-	filepath := params.ByName("filepath")
+	filepath := params["filepath"]
 	file := fmt.Sprintf("/v%d/%s", version, filepath)
 	req1, err := http.NewRequest("GET", file, nil)
 	if err != nil {
@@ -41,5 +45,6 @@ func (h *SchemaHandler) ServeHTTP(rw http.ResponseWriter, req0 *http.Request, pa
 		rw.Header().Del(HeaderContentType)
 	}
 
+	// Delegate request handling to the standard fileserver
 	h.fileServer.ServeHTTP(rw, req1)
 }

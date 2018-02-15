@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -32,18 +31,6 @@ const (
 var (
 	sampleTimestamp = time.Date(2015, 3, 18, 14, 30, 0, 0, time.UTC)
 )
-
-type sampleResource struct {
-	NotImplementedResource
-}
-
-func (r *sampleResource) New() interface{} {
-	return &sample{}
-}
-
-func (r *sampleResource) Id(value interface{}) string {
-	return strconv.Itoa(value.(*sample).Id)
-}
 
 func TestReadJson(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", strings.NewReader(sampleJsonBody))

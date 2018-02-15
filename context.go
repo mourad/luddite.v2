@@ -4,21 +4,31 @@ import (
 	"context"
 	"net/http"
 
-	log "github.com/SpirentOrion/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
-type contextKeyT int
+type contextKey int
 
-const contextHandlerDetailsKey = contextKeyT(0)
+const contextHandlerDetailsKey = contextKey(0)
 
+// NB: New fields added to this structure must be explicitly initialized in the
+// init method below. This enables pool-based allocation.
 type handlerDetails struct {
-	s               Service
+	s               *Service
+	rw              ResponseWriter
 	request         *http.Request
 	requestId       string
 	requestProgress string
-	sessionId       string
 	apiVersion      int
-	respWriter      http.ResponseWriter
+}
+
+func (d *handlerDetails) init(s *Service, rw ResponseWriter, request *http.Request, requestId, requestProgress string) {
+	d.s = s
+	d.rw = rw
+	d.request = request
+	d.requestId = requestId
+	d.requestProgress = requestProgress
+	d.apiVersion = 0
 }
 
 func withHandlerDetails(ctx context.Context, d *handlerDetails) context.Context {
@@ -32,7 +42,7 @@ func contextHandlerDetails(ctx context.Context) (d *handlerDetails) {
 
 // ContextService returns the Service instance value from a
 // context.Context, if possible.
-func ContextService(ctx context.Context) (s Service) {
+func ContextService(ctx context.Context) (s *Service) {
 	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
 		s = d.s
 	}
@@ -50,11 +60,20 @@ func ContextLogger(ctx context.Context) (logger *log.Logger) {
 	return
 }
 
-// ContextApiVersion returns the current HTTP request's API version value from a
-// context.Context, if possible.
-func ContextApiVersion(ctx context.Context) (apiVersion int) {
+// ContextResponseWriter returns the current HTTP request's ResponseWriter from
+// a context.Context, if possible.
+func ContextResponseWriter(ctx context.Context) (rw ResponseWriter) {
 	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
-		apiVersion = d.apiVersion
+		rw, _ = d.rw.(ResponseWriter)
+	}
+	return
+}
+
+// ContextResponseHeaders returns the current HTTP response's header collection from
+// a context.Context, if possible.
+func ContextResponseHeaders(ctx context.Context) (header http.Header) {
+	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
+		header = d.rw.Header()
 	}
 	return
 }
@@ -81,36 +100,7 @@ func ContextRequestId(ctx context.Context) (requestId string) {
 // context.Context, if possible.
 func ContextSessionId(ctx context.Context) (sessionId string) {
 	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
-		sessionId = d.sessionId
-	}
-	return
-}
-
-// ContextResponseHeaders returns the current HTTP response's header collection from
-// a context.Context, if possible.
-func ContextResponseHeaders(ctx context.Context) (respHeaders http.Header) {
-	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
-		respHeaders = d.respWriter.Header()
-	}
-	return
-}
-
-// ContextCloseNotify returns a channel that receives at most a single value
-// (true) when the client connection has gone away, if possible.
-func ContextCloseNotify(ctx context.Context) (closeNotify <-chan bool) {
-	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
-		closeNotify = d.respWriter.(http.CloseNotifier).CloseNotify()
-	}
-	return
-}
-
-// ContextResponseWriter returns the current HTTP request's ResponseWriter from
-// a context.Context, if possible.
-func ContextResponseWriter(ctx context.Context) (respWriter ResponseWriter) {
-	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
-		if rw, ok := d.respWriter.(ResponseWriter); ok {
-			respWriter = rw
-		}
+		sessionId = d.request.Header.Get(HeaderSessionId)
 	}
 	return
 }
@@ -126,8 +116,17 @@ func ContextRequestProgress(ctx context.Context) (reqProgress string) {
 
 // SetContextRequestProgress sets the current HTTP request's progress trace in
 // a context.Context.
-func SetContextRequestProgress(ctx context.Context, pkgName, funcName, stage string) {
+func SetContextRequestProgress(ctx context.Context, progress string) {
 	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
-		d.requestProgress = pkgName + "." + funcName + "-" + stage
+		d.requestProgress = progress
 	}
+}
+
+// ContextApiVersion returns the current HTTP request's API version value from a
+// context.Context, if possible.
+func ContextApiVersion(ctx context.Context) (apiVersion int) {
+	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
+		apiVersion = d.apiVersion
+	}
+	return
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/SpirentOrion/luddite"
+	"github.com/SpirentOrion/luddite.v2"
 )
 
 type Config struct {
@@ -36,7 +36,7 @@ func main() {
 		panic(err)
 	}
 
-	s.AddCollectionResource("/users", newUserResource())
+	s.AddResource(1, "/users", newUserResource())
 
 	if err := s.Run(); err != nil {
 		panic(err)

@@ -12,6 +12,7 @@ const (
 	EcodeSerializationFailed   = "SERIALIZATION_FAILED"
 	EcodeDeserializationFailed = "DESERIALIZATION_FAILED"
 	EcodeResourceIdMismatch    = "RESOURCE_ID_MISMATCH"
+	EcodeApiVersionInvalid     = "API_VERSION_INVALID"
 	EcodeApiVersionTooOld      = "API_VERSION_TOO_OLD"
 	EcodeApiVersionTooNew      = "API_VERSION_TOO_NEW"
 	EcodeValidationFailed      = "VALIDATION_FAILED"
@@ -30,6 +31,7 @@ var commonErrorMap = map[string]string{
 	EcodeSerializationFailed:   "Serialization failed: %s",
 	EcodeDeserializationFailed: "Deserialization failed: %s",
 	EcodeResourceIdMismatch:    "Resource identifier in URL doesn't match value in body",
+	EcodeApiVersionInvalid:     "API versions are positive integers",
 	EcodeApiVersionTooOld:      "The minimum supported API version number is %d",
 	EcodeApiVersionTooNew:      "The maximum supported API version number is %d",
 	EcodeValidationFailed:      "Validation failed: %s",

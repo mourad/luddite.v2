@@ -1,23 +1,25 @@
 BUILD_PATH ?= .
 
 ifdef COMSPEC
-	EXAMPLE := example.exe
+EXAMPLE := example\\example.exe
 else
-	EXAMPLE := example
+EXAMPLE := example/example
 endif
 
-.PHONY: all build example test clean
+.PHONY: all vet build test clean
 
-all: test build example
+all: vet build test
+
+vet:
+	cd $(BUILD_PATH) && go vet -all -composites=false -shadow=true ./...
 
 build:
-	cd $(BUILD_PATH) && go tool vet -all -composites=false -shadow=true *.go && go build -a
-
-example:
-	cd $(BUILD_PATH)/example && go build -a -o $(EXAMPLE) *.go
+	cd $(BUILD_PATH) && go build .
+	cd $(BUILD_PATH) && go build -o $(EXAMPLE) ./example/...
 
 test:
 	cd $(BUILD_PATH) && go test -race
 
 clean:
-	rm -f $(EXAMPLE_BIN)
+	cd $(BUILD_PATH) && go clean
+	rm -f $(EXAMPLE)
