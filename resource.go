@@ -8,6 +8,14 @@ import (
 	"github.com/dimfeld/httptreemux"
 )
 
+const (
+	RouteTagSeg1 = "seg1"
+	RouteTagSeg2 = "seg2"
+
+	RouteParamAction = RouteTagSeg2 // e.g. in `POST /resource/id/action`
+	RouteParamId     = RouteTagSeg1 // e.g. in `GET /resource/id`
+)
+
 // CollectionLister is a collection-style resource that returns all its elements
 // in response to `GET /resource`.
 type CollectionLister interface {
@@ -47,7 +55,7 @@ func AddCountCollectionRoute(router *httptreemux.ContextMux, basePath string, r 
 }
 
 // CollectionGetter is a collection-style resource that returns a specific element
-// in response to `GET /resource/:id`.
+// in response to `GET /resource/id`.
 type CollectionGetter interface {
 	// Get returns an HTTP status code and a single resource (or error).
 	Get(req *http.Request, id string) (int, interface{})
@@ -55,11 +63,11 @@ type CollectionGetter interface {
 
 // AddGetCollectionRoute adds a route for a CollectionGetter.
 func AddGetCollectionRoute(router *httptreemux.ContextMux, basePath string, r CollectionGetter) {
-	router.GET(path.Join(basePath, ":id"), func(rw http.ResponseWriter, req *http.Request) {
+	router.GET(path.Join(basePath, ":"+RouteParamId), func(rw http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		SetContextRequestProgress(ctx, "luddite.GetCollectionRoute.begin")
 		params := httptreemux.ContextParams(ctx)
-		if status, v := r.Get(req, params["id"]); status > 0 {
+		if status, v := r.Get(req, params[RouteParamId]); status > 0 {
 			SetContextRequestProgress(ctx, "luddite.GetCollectionRoute.write")
 			_ = WriteResponse(rw, status, v)
 		}
@@ -105,8 +113,8 @@ func AddCreateCollectionRoute(router *httptreemux.ContextMux, basePath string, r
 	})
 }
 
-// CollectionUpdater is a collection-style resource that updates a specific element
-// in response to `PUT /resource/:id`.
+// CollectionUpdater is a collection-style resource that updates a specific
+// element in response to `PUT /resource/id`.
 type CollectionUpdater interface {
 	// New returns a new instance of the resource.
 	New() interface{}
@@ -120,7 +128,7 @@ type CollectionUpdater interface {
 
 // AddUpdateCollectionRoute adds a route for a CollectionUpdater.
 func AddUpdateCollectionRoute(router *httptreemux.ContextMux, basePath string, r CollectionUpdater) {
-	router.PUT(path.Join(basePath, ":id"), func(rw http.ResponseWriter, req *http.Request) {
+	router.PUT(path.Join(basePath, ":"+RouteParamId), func(rw http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		SetContextRequestProgress(ctx, "luddite.UpdateCollectionRoute.begin")
 		v0 := r.New()
@@ -130,7 +138,7 @@ func AddUpdateCollectionRoute(router *httptreemux.ContextMux, basePath string, r
 			return
 		}
 		params := httptreemux.ContextParams(ctx)
-		id := params["id"]
+		id := params[RouteParamId]
 		if id != r.Id(v0) {
 			SetContextRequestProgress(ctx, "luddite.UpdateCollectionRoute.id_error")
 			_ = WriteResponse(rw, http.StatusBadRequest, NewError(nil, EcodeResourceIdMismatch))
@@ -144,7 +152,7 @@ func AddUpdateCollectionRoute(router *httptreemux.ContextMux, basePath string, r
 }
 
 // CollectionDeleter is a collection-style resource that deletes a specific
-// element in response to `DELETE /resource/:id`. It may also optionally delete
+// element in response to `DELETE /resource/id`. It may also optionally delete
 // the entire collection in response to `DELETE /resource`.
 type CollectionDeleter interface {
 	// Delete returns an HTTP status code and a deleted resource (or error).
@@ -153,11 +161,11 @@ type CollectionDeleter interface {
 
 // AddDeleteCollectionRoute adds routes for a CollectionDeleter.
 func AddDeleteCollectionRoute(router *httptreemux.ContextMux, basePath string, r CollectionDeleter) {
-	router.DELETE(path.Join(basePath, ":id"), func(rw http.ResponseWriter, req *http.Request) {
+	router.DELETE(path.Join(basePath, ":"+RouteParamId), func(rw http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		SetContextRequestProgress(ctx, "luddite.DeleteCollectionRoute.begin")
 		params := httptreemux.ContextParams(ctx)
-		if status, v := r.Delete(req, params["id"]); status > 0 {
+		if status, v := r.Delete(req, params[RouteParamId]); status > 0 {
 			SetContextRequestProgress(ctx, "luddite.DeleteCollectionRoute.write")
 			_ = WriteResponse(rw, status, v)
 		}
@@ -172,8 +180,8 @@ func AddDeleteCollectionRoute(router *httptreemux.ContextMux, basePath string, r
 	})
 }
 
-// CollectionActioner is a collection-style resource that executes an action
-// in response to `POST /resource/:id/:action`.
+// CollectionActioner is a collection-style resource that executes an action in
+// response to `POST /resource/id/action`.
 type CollectionActioner interface {
 	// Action returns an HTTP status code and a response body (or error).
 	Action(req *http.Request, id string, action string) (int, interface{})
@@ -181,11 +189,11 @@ type CollectionActioner interface {
 
 // AddActionCollectionRoute adds a route for a CollectionActioner.
 func AddActionCollectionRoute(router *httptreemux.ContextMux, basePath string, r CollectionActioner) {
-	router.POST(path.Join(basePath, ":id", ":action"), func(rw http.ResponseWriter, req *http.Request) {
+	router.POST(path.Join(basePath, ":"+RouteParamId, ":"+RouteParamAction), func(rw http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		SetContextRequestProgress(ctx, "luddite.ActionCollectionRoute.begin")
 		params := httptreemux.ContextParams(ctx)
-		if status, v := r.Action(req, params["id"], params["action"]); status > 0 {
+		if status, v := r.Action(req, params[RouteParamId], params[RouteParamAction]); status > 0 {
 			SetContextRequestProgress(ctx, "luddite.ActionCollectionRoute.write")
 			_ = WriteResponse(rw, status, v)
 		}
@@ -239,8 +247,8 @@ func AddUpdateSingletonRoute(router *httptreemux.ContextMux, basePath string, r 
 	})
 }
 
-// SingletonActioner is a singleton-style resource that executes an action
-// in response to `POST /resource/:action`.
+// SingletonActioner is a singleton-style resource that executes an action in
+// response to `POST /resource/action`.
 type SingletonActioner interface {
 	// Action returns an HTTP status code and a response body (or error).
 	Action(req *http.Request, action string) (int, interface{})
@@ -248,11 +256,11 @@ type SingletonActioner interface {
 
 // AddActionSingletonRoute adds a route for a SingletonActioner.
 func AddActionSingletonRoute(router *httptreemux.ContextMux, basePath string, r SingletonActioner) {
-	router.POST(path.Join(basePath, ":action"), func(rw http.ResponseWriter, req *http.Request) {
+	router.POST(path.Join(basePath, ":"+RouteParamAction), func(rw http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		SetContextRequestProgress(ctx, "luddite.ActionSingletonRoute.begin")
 		params := httptreemux.ContextParams(ctx)
-		if status, v := r.Action(req, params["action"]); status > 0 {
+		if status, v := r.Action(req, params[RouteParamAction]); status > 0 {
 			SetContextRequestProgress(ctx, "luddite.ActionSingletonRoute.write")
 			_ = WriteResponse(rw, status, v)
 		}
