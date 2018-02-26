@@ -20,6 +20,7 @@ type handlerDetails struct {
 	requestId       string
 	requestProgress string
 	apiVersion      int
+	external        map[interface{}]interface{}
 }
 
 func (d *handlerDetails) init(s *Service, rw ResponseWriter, request *http.Request, requestId, requestProgress string) {
@@ -29,6 +30,7 @@ func (d *handlerDetails) init(s *Service, rw ResponseWriter, request *http.Reque
 	d.requestId = requestId
 	d.requestProgress = requestProgress
 	d.apiVersion = 0
+	d.external = nil
 }
 
 func withHandlerDetails(ctx context.Context, d *handlerDetails) context.Context {
@@ -127,6 +129,27 @@ func SetContextRequestProgress(ctx context.Context, progress string) {
 func ContextApiVersion(ctx context.Context) (apiVersion int) {
 	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
 		apiVersion = d.apiVersion
+	}
+	return
+}
+
+// SetContextDetail sets a detail in the current HTTP request's context. This
+// may be used by the service's own middleware and avoids allocating a new
+// request with additional context.
+func SetContextDetail(ctx context.Context, key, value interface{}) {
+	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok {
+		if d.external == nil {
+			d.external = make(map[interface{}]interface{})
+		}
+		d.external[key] = value
+	}
+}
+
+// ContextDetail gets a detail from the current HTTP request's context, if
+// possible.
+func ContextDetail(ctx context.Context, key interface{}) (value interface{}) {
+	if d, ok := ctx.Value(contextHandlerDetailsKey).(*handlerDetails); ok && d.external != nil {
+		value, _ = d.external[key]
 	}
 	return
 }

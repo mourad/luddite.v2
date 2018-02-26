@@ -209,7 +209,7 @@ func (s *Service) addSchemaRoutes() {
 
 	// Serve the various schemas, e.g. /schema/v1, /schema/v2, etc.
 	h := newSchemaHandler(config.Schema.FilePath)
-	router.GET(path.Join(config.Schema.URIPath, "/v:version/", "*filepath"), h.ServeHTTP)
+	router.GET(path.Join(config.Schema.URIPath, ":version/*filepath"), h.ServeHTTP)
 
 	// Temporarily redirect (307) the base schema path to the default schema file, e.g. /schema -> /schema/v2/fileName
 	defaultSchemaPath := path.Join(config.Schema.URIPath, fmt.Sprintf("v%d", config.Version.Max), config.Schema.FileName)
@@ -218,7 +218,7 @@ func (s *Service) addSchemaRoutes() {
 	})
 
 	// Temporarily redirect (307) the version schema path to the default schema file, e.g. /schema/v2 -> /schema/v2/fileName
-	router.GET(path.Join(config.Schema.URIPath, "/v:version/"), func(rw http.ResponseWriter, req *http.Request) {
+	router.GET(path.Join(config.Schema.URIPath, ":version"), func(rw http.ResponseWriter, req *http.Request) {
 		http.Redirect(rw, req, defaultSchemaPath, http.StatusTemporaryRedirect)
 	})
 
