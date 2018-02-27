@@ -23,17 +23,21 @@ func newSchemaHandler(filePath string) http.Handler {
 func (h *schemaHandler) ServeHTTP(rw http.ResponseWriter, req0 *http.Request) {
 	// Transform the request path to a path compatible with the schema directory
 	params := httptreemux.ContextParams(req0.Context())
-	versionStr := params["version"]
 
-	version, err := strconv.Atoi(versionStr)
+	versionStr := params["version"]
+	if len(versionStr) < 2 || versionStr[0] != 'v' {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	version, err := strconv.Atoi(versionStr[1:])
 	if err != nil || version < 1 {
 		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	filepath := params["filepath"]
-	file := fmt.Sprintf("/v%d/%s", version, filepath)
-	req1, err := http.NewRequest("GET", file, nil)
+	req1, err := http.NewRequest("GET", fmt.Sprintf("/v%d/%s", version, filepath), nil)
 	if err != nil {
 		panic(err)
 	}

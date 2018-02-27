@@ -32,7 +32,7 @@ const (
 )
 
 func RequestBearerToken(r *http.Request) string {
-	if s := r.Header.Get(HeaderAuthorization); len(s) >= 7 && s[:7] == "bearer " {
+	if s := r.Header.Get(HeaderAuthorization); len(s) >= 7 && s[:7] == "Bearer " {
 		return s[7:]
 	}
 	return r.URL.Query().Get("access_token")
