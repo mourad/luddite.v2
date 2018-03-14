@@ -14,9 +14,9 @@ type schemaHandler struct {
 	fileServer http.Handler
 }
 
-func newSchemaHandler(filePath string) http.Handler {
+func newSchemaHandler(fs http.FileSystem) http.Handler {
 	return &schemaHandler{
-		fileServer: http.FileServer(http.Dir(filePath)),
+		fileServer: http.FileServer(fs),
 	}
 }
 
