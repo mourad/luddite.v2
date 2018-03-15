@@ -50,6 +50,7 @@ type Service struct {
 	handlers      []http.Handler
 	cors          *cors.Cors
 	tracer        context.Context
+	schemas       http.FileSystem
 	once          sync.Once
 }
 
@@ -121,15 +122,9 @@ func NewService(config *ServiceConfig) (*Service, error) {
 	s.AddHandler(newNegotiatorHandler(negotiatedContentTypes))
 	s.AddHandler(newVersionHandler(s.config.Version.Min, s.config.Version.Max))
 
-	// Add optional HTTP handlers
-	if s.config.Metrics.Enabled {
-		s.addMetricsRoute()
-	}
-	if s.config.Profiler.Enabled {
-		s.addProfilerRoutes()
-	}
+	// Create the default schema filesystem
 	if config.Schema.Enabled {
-		s.addSchemaRoutes()
+		s.schemas = http.Dir(config.Schema.FilePath)
 	}
 
 	// Dump goroutine stacks on demand
@@ -178,6 +173,13 @@ func (s *Service) AddResource(version int, basePath string, r interface{}) error
 	return nil
 }
 
+// SetSchemas allows a service to provide its own HTTP filesystem to be used for
+// schema assets. This overrides the use of the local filesystem and paths given
+// in the service config.
+func (s *Service) SetSchemas(schemas http.FileSystem) {
+	s.schemas = schemas
+}
+
 // Run starts the service's HTTP server and runs it forever or until SIGINT is
 // received. This method should be invoked once per service.
 func (s *Service) Run() (err error) {
@@ -208,7 +210,7 @@ func (s *Service) addSchemaRoutes() {
 	router := s.globalRouter
 
 	// Serve the various schemas, e.g. /schema/v1, /schema/v2, etc.
-	h := newSchemaHandler(config.Schema.FilePath)
+	h := newSchemaHandler(s.schemas)
 	router.GET(path.Join(config.Schema.URIPath, ":version/*filepath"), h.ServeHTTP)
 
 	// Temporarily redirect (307) the base schema path to the default schema file, e.g. /schema -> /schema/v2/fileName
@@ -322,6 +324,17 @@ func (s *Service) run() error {
 		if err != nil {
 			s.defaultLogger.Warn("trace recording is not active: ", err)
 		}
+	}
+
+	// Add optional HTTP handlers
+	if s.config.Metrics.Enabled {
+		s.addMetricsRoute()
+	}
+	if s.config.Profiler.Enabled {
+		s.addProfilerRoutes()
+	}
+	if config.Schema.Enabled {
+		s.addSchemaRoutes()
 	}
 
 	// Serve HTTP or HTTPS, depending on config. Use stoppable listener so
