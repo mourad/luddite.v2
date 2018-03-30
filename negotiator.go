@@ -24,13 +24,15 @@ func (n *negotiator) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// Negotiate and set a Content-Type
-	format, err := negotiation.NegotiateAccept(accept, n.acceptedFormats)
-	if err != nil {
-		rw.WriteHeader(http.StatusNotAcceptable)
-		return
+	//
+	// Note: Negotation failures do not return 406 errors here. This allows
+	// resource handlers to potentially inspect/handle certain rarely-used
+	// content types on their own. If a negotiation failure has occurred and
+	// the resource handler doesn't deal with it, then we can expect a 406
+	// from WriteResponse.
+	if format, err := negotiation.NegotiateAccept(accept, n.acceptedFormats); err == nil {
+		rw.Header().Set(HeaderContentType, format.Value)
 	}
-
-	rw.Header().Set(HeaderContentType, format.Value)
 }
 
 // RegisterFormat registers a new format and associated MIME types.

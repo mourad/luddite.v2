@@ -14,6 +14,7 @@ import (
 
 const (
 	ContentTypeCss               = "text/css"
+	ContentTypeCsv               = "text/csv"
 	ContentTypeGif               = "image/gif"
 	ContentTypeHtml              = "text/html"
 	ContentTypeJson              = "application/json"
@@ -95,7 +96,7 @@ func WriteResponse(rw http.ResponseWriter, status int, v interface{}) (err error
 		case error:
 			v = NewError(nil, EcodeInternal, v)
 		}
-		switch rw.Header().Get(HeaderContentType) {
+		switch ct := rw.Header().Get(HeaderContentType); ct {
 		case ContentTypeJson:
 			b, err = json.Marshal(v)
 			if err != nil {
@@ -140,8 +141,14 @@ func WriteResponse(rw http.ResponseWriter, status int, v interface{}) (err error
 			switch v.(type) {
 			case []byte:
 				b = v.([]byte)
+				if ct == "" {
+					rw.Header().Set(HeaderContentType, ContentTypeOctetStream)
+				}
 			case string:
 				b = []byte(v.(string))
+				if ct == "" {
+					rw.Header().Set(HeaderContentType, ContentTypePlain)
+				}
 			default:
 				rw.WriteHeader(http.StatusNotAcceptable)
 				return
