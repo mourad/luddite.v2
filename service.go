@@ -575,17 +575,20 @@ func openLogFile(logger *log.Logger, logPath string) {
 		var curLog *os.File
 		for {
 			// Open and begin using a new log file
-			if newLog, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666); err == nil {
-				logger.Out = newLog
-				if curLog == nil {
-					// First log, signal the outer goroutine that we're running
-					logging <- true
-				} else {
-					// Follow-on log, close the current log file
-					_ = curLog.Close()
-				}
-				curLog = newLog
+			newLog, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+			if err != nil {
+				panic(err)
 			}
+
+			logger.Out = newLog
+			if curLog == nil {
+				// First log, signal the outer goroutine that we're running
+				logging <- true
+			} else {
+				// Follow-on log, close the current log file
+				_ = curLog.Close()
+			}
+			curLog = newLog
 
 			// Wait for a SIGHUP
 			<-sigs
