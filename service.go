@@ -75,10 +75,8 @@ func NewService(config *ServiceConfig) (*Service, error) {
 		s.apiRouters[v] = newRouter()
 	}
 
-	/* Default recovery handler is defined as the identity */
-	s.recoveryHandler = func(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-		return handler
-	}
+	// Default recovery handler is defined as the identity
+	s.recoveryHandler = defaultRecoveryHandler
 
 	// Create the service loggers
 	s.defaultLogger = &log.Logger{
@@ -380,9 +378,7 @@ func (s *Service) run() error {
 
 func (s *Service) SetRecoveryHandler(handler func(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request)) {
 	if handler == nil {
-		handler = func(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-			return handler
-		}
+		handler = defaultRecoveryHandler
 	}
 	s.recoveryHandler = handler
 }
@@ -612,4 +608,9 @@ func openLogFile(logger *log.Logger, logPath string) {
 
 	signal.Notify(sigs, syscall.SIGHUP)
 	<-logging
+}
+
+// Default recovery handler - equivalent to the identity
+func defaultRecoveryHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return handler
 }
