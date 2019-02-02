@@ -42,16 +42,17 @@ var (
 
 // Service implements a standalone RESTful web service.
 type Service struct {
-	config        *ServiceConfig
-	defaultLogger *log.Logger
-	accessLogger  *log.Logger
-	globalRouter  *httptreemux.ContextMux
-	apiRouters    map[int]*httptreemux.ContextMux
-	handlers      []http.Handler
-	cors          *cors.Cors
-	tracer        context.Context
-	schemas       http.FileSystem
-	once          sync.Once
+	config          *ServiceConfig
+	defaultLogger   *log.Logger
+	accessLogger    *log.Logger
+	globalRouter    *httptreemux.ContextMux
+	apiRouters      map[int]*httptreemux.ContextMux
+	handlers        []http.Handler
+	cors            *cors.Cors
+	tracer          context.Context
+	schemas         http.FileSystem
+	once            sync.Once
+	recoveryHandler func(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request)
 }
 
 // NewService creates a new Service instance based on the given config.
@@ -72,6 +73,11 @@ func NewService(config *ServiceConfig) (*Service, error) {
 	}
 	for v := config.Version.Min; v <= config.Version.Max; v++ {
 		s.apiRouters[v] = newRouter()
+	}
+
+	/* Default recovery handler is defined as the identity */
+	s.recoveryHandler = func(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+		return handler
 	}
 
 	// Create the service loggers
@@ -372,6 +378,15 @@ func (s *Service) run() error {
 	return err
 }
 
+func (s *Service) SetRecoveryHandler(handler func(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request)) {
+	if handler == nil {
+		handler = func(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+			return handler
+		}
+	}
+	s.recoveryHandler = handler
+}
+
 func (s *Service) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	var (
 		start    = time.Now()
@@ -537,7 +552,7 @@ func (s *Service) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		// Run the request through the service's middleware handlers. If
 		// any handler generates a response then we are done.
 		for _, h := range s.handlers {
-			h.ServeHTTP(res, req)
+			s.recoveryHandler(h.ServeHTTP)(res, req)
 			if res.Written() {
 				return
 			}
@@ -553,7 +568,7 @@ func (s *Service) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 		// Finally, dispatch to a resource via an API router
 		router := s.apiRouters[d.apiVersion]
-		router.ServeHTTP(res, req)
+		s.recoveryHandler(router.ServeHTTP)(res, req)
 	})
 }
 
