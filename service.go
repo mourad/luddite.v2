@@ -68,12 +68,12 @@ func NewService(config *ServiceConfig) (*Service, error) {
 	// Create the service and its routers
 	s := &Service{
 		config:          config,
-		globalRouter:    newRouter(),
+		globalRouter:    newRouter(config.Prefix),
 		apiRouters:      make(map[int]*httptreemux.ContextMux, config.Version.Max-config.Version.Min+1),
 		recoveryHandler: defaultRecoveryHandler,
 	}
 	for v := config.Version.Min; v <= config.Version.Max; v++ {
-		s.apiRouters[v] = newRouter()
+		s.apiRouters[v] = newRouter(config.Prefix)
 	}
 
 	// Create the service loggers
@@ -216,7 +216,7 @@ func (s *Service) addSchemaRoutes() {
 	router.GET(path.Join(config.Schema.URIPath, ":version/*filepath"), h.ServeHTTP)
 
 	// Temporarily redirect (307) the base schema path to the default schema file, e.g. /schema -> /schema/v2/fileName
-	defaultSchemaPath := path.Join(config.Schema.URIPath, fmt.Sprintf("v%d", config.Version.Max), config.Schema.FileName)
+	defaultSchemaPath := path.Join(config.Prefix, config.Schema.URIPath, fmt.Sprintf("v%d", config.Version.Max), config.Schema.FileName)
 	router.GET(config.Schema.URIPath, func(rw http.ResponseWriter, req *http.Request) {
 		http.Redirect(rw, req, defaultSchemaPath, http.StatusTemporaryRedirect)
 	})
@@ -566,9 +566,12 @@ func (s *Service) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	})
 }
 
-func newRouter() *httptreemux.ContextMux {
+func newRouter(prefix string) *httptreemux.ContextMux {
 	router := httptreemux.NewContextMux()
 	router.NotFoundHandler = notFoundHandler
+	if prefix != "" {
+		router.ContextGroup = router.NewGroup(prefix)
+	}
 	return router
 }
 
