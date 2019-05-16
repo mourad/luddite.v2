@@ -31,6 +31,9 @@ type ServiceConfig struct {
 	// Addr is the address:port pair that the HTTP server listens on.
 	Addr string
 
+	// Prefix is a prefix to add to every path
+	Prefix string
+
 	CORS struct {
 		// Enabled, when true, enables CORS.
 		Enabled bool
