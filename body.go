@@ -30,11 +30,11 @@ const (
 	maxFormDataMemoryUsage = 10 * 1024 * 1024
 )
 
-var formDecoder = schema.NewDecoder()
+var FormDecoder = schema.NewDecoder()
 
 func init() {
 	t := time.Time{}
-	formDecoder.RegisterConverter(t, convertTime)
+	FormDecoder.RegisterConverter(t, convertTime)
 }
 
 func convertTime(value string) reflect.Value {
@@ -54,7 +54,7 @@ func ReadRequest(req *http.Request, v interface{}) error {
 		if err := req.ParseMultipartForm(maxFormDataMemoryUsage); err != nil {
 			return NewError(nil, EcodeDeserializationFailed, err)
 		}
-		if err := formDecoder.Decode(v, req.PostForm); err != nil {
+		if err := FormDecoder.Decode(v, req.PostForm); err != nil {
 			return NewError(nil, EcodeDeserializationFailed, err)
 		}
 		return nil
@@ -62,7 +62,7 @@ func ReadRequest(req *http.Request, v interface{}) error {
 		if err := req.ParseForm(); err != nil {
 			return NewError(nil, EcodeDeserializationFailed, err)
 		}
-		if err := formDecoder.Decode(v, req.PostForm); err != nil {
+		if err := FormDecoder.Decode(v, req.PostForm); err != nil {
 			return NewError(nil, EcodeDeserializationFailed, err)
 		}
 		return nil
