@@ -208,9 +208,9 @@ func (s *Service) addProfilerRoutes() {
 	router.POST(path.Join(uriPath, "/profile"), pprof.Profile)
 	router.GET(path.Join(uriPath, "/symbol"), pprof.Symbol)
 	router.POST(path.Join(uriPath, "/symbol"), pprof.Symbol)
+	router.GET(path.Join(uriPath, "/threadcreate"), pprof.Handler("threadcreate").ServeHTTP)
 	router.GET(path.Join(uriPath, "/trace"), pprof.Trace)
 	router.POST(path.Join(uriPath, "/trace"), pprof.Trace)
-	router.GET(path.Join(uriPath, "/threadcreate"), pprof.Handler("threadcreate").ServeHTTP)
 }
 
 func (s *Service) addSchemaRoutes() {
