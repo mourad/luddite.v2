@@ -197,7 +197,7 @@ func (s *Service) addMetricsRoute() {
 func (s *Service) addProfilerRoutes() {
 	router := s.globalRouter
 	uriPath := s.config.Profiler.URIPath
-	router.GET(path.Join(uriPath, ""), pprof.Index)
+	router.GET(path.Join(uriPath, "/"), pprof.Index)
 	router.GET(path.Join(uriPath, "/cmdline"), pprof.Cmdline)
 	router.GET(path.Join(uriPath, "/profile"), pprof.Profile)
 	router.POST(path.Join(uriPath, "/profile"), pprof.Profile)
