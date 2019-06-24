@@ -198,18 +198,18 @@ func (s *Service) addProfilerRoutes() {
 	router := s.globalRouter
 	uriPath := s.config.Profiler.URIPath
 	router.GET(path.Join(uriPath, "/"), pprof.Index)
+	router.GET(path.Join(uriPath, "/allocs"), pprof.Handler("allocs").ServeHTTP)
+	router.GET(path.Join(uriPath, "/block"), pprof.Handler("block").ServeHTTP)
 	router.GET(path.Join(uriPath, "/cmdline"), pprof.Cmdline)
+	router.GET(path.Join(uriPath, "/goroutine"), pprof.Handler("goroutine").ServeHTTP)
+	router.GET(path.Join(uriPath, "/heap"), pprof.Handler("heap").ServeHTTP)
+	router.GET(path.Join(uriPath, "/mutex"), pprof.Handler("mutex").ServeHTTP)
 	router.GET(path.Join(uriPath, "/profile"), pprof.Profile)
 	router.POST(path.Join(uriPath, "/profile"), pprof.Profile)
 	router.GET(path.Join(uriPath, "/symbol"), pprof.Symbol)
 	router.POST(path.Join(uriPath, "/symbol"), pprof.Symbol)
 	router.GET(path.Join(uriPath, "/trace"), pprof.Trace)
 	router.POST(path.Join(uriPath, "/trace"), pprof.Trace)
-	router.GET(path.Join(uriPath, "/allocs"), pprof.Handler("allocs").ServeHTTP)
-	router.GET(path.Join(uriPath, "/block"), pprof.Handler("block").ServeHTTP)
-	router.GET(path.Join(uriPath, "/goroutine"), pprof.Handler("goroutine").ServeHTTP)
-	router.GET(path.Join(uriPath, "/heap"), pprof.Handler("heap").ServeHTTP)
-	router.GET(path.Join(uriPath, "/mutex"), pprof.Handler("mutex").ServeHTTP)
 	router.GET(path.Join(uriPath, "/threadcreate"), pprof.Handler("threadcreate").ServeHTTP)
 }
 
