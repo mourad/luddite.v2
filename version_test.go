@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+func TestNonPositiveVersionConstraint(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/", nil)
+	req.Header.Add(HeaderSpirentApiVersion, "0")
+	rw := httptest.NewRecorder()
+	rw.Header().Set(HeaderContentType, ContentTypeJson)
+
+	v := newVersionHandler(2, 42)
+	v.ServeHTTP(rw, req)
+	if rw.Code != http.StatusBadRequest {
+		t.Error("expected 400/Bad request")
+	}
+}
 func TestMinApiVersionConstraint(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
 	req.Header.Add(HeaderSpirentApiVersion, "1")
