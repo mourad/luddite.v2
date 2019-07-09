@@ -18,6 +18,7 @@ func TestNonPositiveVersionConstraint(t *testing.T) {
 		t.Error("expected 400/Bad request")
 	}
 }
+
 func TestMinApiVersionConstraint(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
 	req.Header.Add(HeaderSpirentApiVersion, "1")
