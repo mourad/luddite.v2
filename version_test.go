@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestNonPositiveVersionConstraint(t *testing.T) {
+func TestNonPositiveApiVersionConstraint(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
 	req.Header.Add(HeaderSpirentApiVersion, "0")
 	rw := httptest.NewRecorder()

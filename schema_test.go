@@ -9,7 +9,7 @@ import (
 	"github.com/dimfeld/httptreemux"
 )
 
-func TestInvalidVersionStringLength(t *testing.T) {
+func TestSchemaHandlerGivenInvalidVersionStringLength(t *testing.T) {
 	v := make(map[string]string)
 	v["version"] = "v"
 	ctx := httptreemux.AddParamsToContext(context.Background(), v)
@@ -26,7 +26,7 @@ func TestInvalidVersionStringLength(t *testing.T) {
 	}
 }
 
-func TestInvalidVersionValue(t *testing.T) {
+func TestSchemaHandlerGivenInvalidVersionValue(t *testing.T) {
 	v := make(map[string]string)
 	v["version"] = "w1"
 	ctx := httptreemux.AddParamsToContext(context.Background(), v)
@@ -43,7 +43,7 @@ func TestInvalidVersionValue(t *testing.T) {
 	}
 }
 
-func TestInvalidVersionNumber(t *testing.T) {
+func TestSchemaHandlerGivenInvalidVersionNumber(t *testing.T) {
 	v := make(map[string]string)
 	v["version"] = "v0"
 	ctx := httptreemux.AddParamsToContext(context.Background(), v)
