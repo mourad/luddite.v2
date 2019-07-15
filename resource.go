@@ -103,7 +103,7 @@ func AddCreateCollectionRoute(router *httptreemux.ContextMux, basePath string, r
 				url := url.URL{
 					Scheme: req.URL.Scheme,
 					Host:   req.URL.Host,
-					Path:   path.Join(basePath, r.Id(v1)),
+					Path:   path.Join(req.URL.Path, r.Id(v1)),
 				}
 				rw.Header().Add(HeaderLocation, url.String())
 			}
