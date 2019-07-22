@@ -12,12 +12,13 @@ import (
 )
 
 const (
-	sampleYamlBody = "-id: \"1234\"\nname:\"dave\"\nflag:\"true\"\ndata:\"SGVsbG8gd29ybGQ=\"\ntimestamp:\"2015-03-18T14:30:00Z\""
+	sampleJSONSchema = "{\"type\": \"object\", \"properties\": { \"name\": { \"type\": \"string\" }, \"birthday\": { \"type\": \"string\", \"format\": \"date\"}"
+	sampleYAMLSchema = "type: object\nproperties:\n  name: {type: string}\n  birthday: {type: string, format: date}"
 )
 
 func TestSchemaHandlerDefaultContentType(t *testing.T) {
 	fakeFS := httpfs.New(mapfs.New(map[string]string{
-		"v1/schema.json": sampleJsonBody,
+		"v1/schema.json": sampleJSONSchema,
 	}))
 	v := make(map[string]string)
 	v["version"] = "v1"
@@ -35,14 +36,14 @@ func TestSchemaHandlerDefaultContentType(t *testing.T) {
 		t.Errorf("incorrrect content type negotiated: %s", ct)
 	}
 
-	if body := string(rw.Body.String()); body != sampleJsonBody {
-		t.Errorf("JSON serialization failed, got: %s, expected: %s\n", body, sampleJsonBody)
+	if body := string(rw.Body.String()); body != sampleJSONSchema {
+		t.Errorf("JSON serialization failed, got: %s, expected: %s\n", body, sampleJSONSchema)
 	}
 }
 
 func TestSchemaHandlerOctetStreamContentType(t *testing.T) {
 	fakeFS := httpfs.New(mapfs.New(map[string]string{
-		"v1/schema.yml": sampleYamlBody,
+		"v1/schema.yml": sampleYAMLSchema,
 	}))
 	v := make(map[string]string)
 	v["version"] = "v1"
@@ -61,8 +62,8 @@ func TestSchemaHandlerOctetStreamContentType(t *testing.T) {
 		t.Errorf("incorrrect content type negotiated: %s", ct)
 	}
 
-	if body := string(rw.Body.String()); body != sampleYamlBody {
-		t.Errorf("YAML serialization failed, got: %s, expected: %s\n", body, sampleYamlBody)
+	if body := string(rw.Body.String()); body != sampleYAMLSchema {
+		t.Errorf("YAML serialization failed, got: %s, expected: %s\n", body, sampleYAMLSchema)
 	}
 }
 
