@@ -235,7 +235,7 @@ func (s *Service) addSchemaRoutes() {
 	// Optionally temporarily redirect (307) the root to the base schema path, e.g. / -> /schema
 	if config.Schema.RootRedirect {
 		router.GET("/", func(rw http.ResponseWriter, req *http.Request) {
-			http.Redirect(rw, req, config.Schema.URIPath, http.StatusTemporaryRedirect)
+			http.Redirect(rw, req, defaultSchemaPath, http.StatusTemporaryRedirect)
 		})
 	}
 }
