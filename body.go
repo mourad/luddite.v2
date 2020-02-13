@@ -89,6 +89,14 @@ func ReadRequest(req *http.Request, v interface{}) error {
 
 // WriteResponse serializes a response body according to the negotiated Content-Type.
 func WriteResponse(rw http.ResponseWriter, status int, v interface{}) (err error) {
+	var inhibitResp bool
+	if rw.Header().Get(HeaderSpirentInhibitResponse) != "" {
+		if status/100 == 2 {
+			inhibitResp = true
+		} else {
+			rw.Header().Del(HeaderSpirentInhibitResponse)
+		}
+	}
 	var b []byte
 	if v != nil {
 		switch v.(type) {
@@ -154,6 +162,10 @@ func WriteResponse(rw http.ResponseWriter, status int, v interface{}) (err error
 				return
 			}
 		}
+	}
+	if inhibitResp {
+		rw.WriteHeader(http.StatusNoContent)
+		return
 	}
 	rw.WriteHeader(status)
 	if b != nil {

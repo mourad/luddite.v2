@@ -2,6 +2,7 @@ package luddite
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/K-Phoen/negotiation"
 )
@@ -32,6 +33,15 @@ func (n *negotiator) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// from WriteResponse.
 	if format, err := negotiation.NegotiateAccept(accept, n.acceptedFormats); err == nil {
 		rw.Header().Set(HeaderContentType, format.Value)
+	}
+
+	// If the X-Spirent-Inhibit-Response header is set and true-ish, then
+	// set the same response header. This will cause subsequent calls to
+	// WriteResponse to omit the response body for 2xx responses and also
+	// makes the behavior obvious to clients (i.e. response header shows
+	// intention beyond the 204 status).
+	if inhibitResp, _ := strconv.ParseBool(req.Header.Get(HeaderSpirentInhibitResponse)); inhibitResp {
+		rw.Header().Set(HeaderSpirentInhibitResponse, "1")
 	}
 }
 
