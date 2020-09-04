@@ -74,7 +74,7 @@ func NewStoppableTCPListener(addr string, keepalives bool) (net.Listener, error)
 
 func NewStoppableTLSListener(addr string, keepalives bool, certFile string, keyFile string) (net.Listener, error) {
 	tlsConfig := &tls.Config{
-		NextProtos:   []string{"http/1.1"},
+		NextProtos:   []string{"http/1.1", "h2"},
 		Certificates: make([]tls.Certificate, 1),
 	}
 
